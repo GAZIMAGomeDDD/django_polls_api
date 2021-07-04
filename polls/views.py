@@ -41,7 +41,7 @@ def poll_view(request: HttpRequest) -> HttpResponse:
 
 @csrf_exempt
 def get_result(request: HttpRequest) -> Union[JsonResponse, HttpResponse]:
-    if request.method == 'POST':
+    if request.method != 'POST':
         return HttpResponse('Not Implemented\n', status=404)
     
     lst = []
