@@ -1,0 +1,3 @@
+while true
+do $(curl -X POST -H 'Content-Type: application/json' -d '{"poll_text": "What is the meaning of life?", "choices": ["We, being animals, the meaning of life is to reproduce ourselves to continue the species. All the other stuff is just to make it interesting.", "Live fast and die young.The irony in life these days is that, in order to find its meaning, you merely have to Google it.", "The meaning of life is yo die and multiply.", "The meaning of life is to live until you die, and to change the world in some little way -- no matter how unknown you are."]}' http://localhost:8000/api/createPoll/)
+done

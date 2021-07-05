@@ -1,56 +1,71 @@
 from django.http import HttpResponse, JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F
 
 from .models import Poll, Choice
 
+from .serializers import (
+    PollCreateSerializer,
+    PollSerializer,
+    GetResultSerializer
+)
+
+from rest_framework.decorators import api_view
+
 from typing import Union
-import json
 
 
-@csrf_exempt
+@api_view(['GET', 'POST'])
 def create_poll_view(request: HttpRequest) -> HttpResponse:
     if request.method != 'POST':
         return HttpResponse('Not Implemented\n', status=404)
     
-    poll_text = request.POST['poll_text']
-    choices = json.loads(request.POST['choices'])
-    poll = Poll.objects.create(poll_text=poll_text)
+    serializer = PollCreateSerializer(data=request.data)
 
-    for choice_text in choices:
-        Choice.objects.create(
-            poll=poll,
-            choice_text=choice_text
-        )
+    if serializer.is_valid():
+        poll_text = serializer.data['poll_text']
+        choices = serializer.data['choices']
+        poll = Poll.objects.create(poll_text=poll_text)
 
-    return HttpResponse('Good!\n', status=201)
+        for choice_text in choices:
+            Choice.objects.create(
+                poll=poll,
+                choice_text=choice_text
+            )
+
+        return HttpResponse('Good!\n', status=201)
 
 
-@csrf_exempt
+@api_view(['GET', 'POST'])
 def poll_view(request: HttpRequest) -> HttpResponse:
     if request.method != 'POST':
         return HttpResponse('Not Implemented\n', status=404)
     
-    poll_id = int(request.POST['poll_id'])
-    choice_id = int(request.POST['choice_id'])
+    serializer = PollSerializer(data=request.data)
+ 
+    if serializer.is_valid():
+        poll_id = serializer.data['poll_id']
+        choice_id = serializer.data['choice_id']
 
-    Poll.objects.get(id=poll_id).choices.filter(id=choice_id).update(votes=F('votes') + 1)
+        Poll.objects.get(id=poll_id).choices.filter(id=choice_id).update(votes=F('votes') + 1)
 
-    return HttpResponse('Good!\n', status=201)
+        return HttpResponse('Good!\n', status=201)
 
 
-@csrf_exempt
+@api_view(['GET', 'POST'])
 def get_result(request: HttpRequest) -> Union[JsonResponse, HttpResponse]:
     if request.method != 'POST':
         return HttpResponse('Not Implemented\n', status=404)
     
-    lst = []
-    poll_id = int(request.POST['poll_id'])
+    serializer = GetResultSerializer(data=request.data)
 
-    try:
-        for choice_data in Poll.objects.get(id=poll_id).choices.values():
-            lst.append(choice_data)
-    except Poll.DoesNotExist:
-        return HttpResponse('Not Implemented\n', status=404)
-        
-    return JsonResponse({'data': lst}, status=200)
+    if serializer.is_valid():
+        lst = []
+        poll_id = serializer.data['poll_id']    
+
+        try:
+            for choice_data in Poll.objects.get(id=poll_id).choices.values():
+                lst.append(choice_data)
+        except Poll.DoesNotExist:
+            return HttpResponse('Not Implemented\n', status=404)
+            
+        return JsonResponse({'data': lst}, status=200)
