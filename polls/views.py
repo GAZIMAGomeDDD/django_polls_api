@@ -26,11 +26,12 @@ def create_poll_view(request: HttpRequest) -> HttpResponse:
         choices = serializer.data['choices']
         poll = Poll.objects.create(poll_text=poll_text)
 
-        for choice_text in choices:
-            Choice.objects.create(
+        Choice.objects.bulk_create([
+            Choice(
                 poll=poll,
                 choice_text=choice_text
-            )
+            ) for choice_text in choices
+        ])
 
         return HttpResponse('Good!\n', status=201)
 
