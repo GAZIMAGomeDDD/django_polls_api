@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-class PollCreateSerializer(serializers.Serializer):
+class CreatePollSerializer(serializers.Serializer):
 
     poll_text = serializers.CharField(max_length=256)
     choices = serializers.ListField(
