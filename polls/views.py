@@ -1,167 +1,72 @@
-from django.http import  HttpRequest
 from django.db.models import F
+from django.http.response import Http404
 
-from .models import Poll, Choice
-
+from .models import Poll
 from .serializers import (
     CreatePollSerializer,
     PollSerializer,
     GetResultSerializer
 )
 
-from rest_framework.views import APIView
+from rest_framework import generics, viewsets
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import mixins
+from rest_framework.request import Request
 
 
-class CreatePoll(APIView):
+class CreatePollViewSet(viewsets.ModelViewSet):
 
-    def get(self, request: HttpRequest) -> Response:
+    serializer_class = CreatePollSerializer
+    queryset = Poll.objects
+    http_method_names = ('post',)
 
-        return Response(
-            'Not Implemented\n', 
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
 
-    def post(self, request: HttpRequest) -> Response:
+class PollView(mixins.UpdateModelMixin, generics.GenericAPIView):
 
-        serializer = CreatePollSerializer(data=request.data)
+    serializer_class = PollSerializer
+
+    def get_object(self, pk: int) -> Poll:
+        try:
+            return Poll.objects.get(pk=pk)
+        except Poll.DoesNotExist:
+            raise Http404
+
+    def update(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_id = serializer.data.get('poll_id')
+        choice_id = serializer.data.get('choice_id')
+        choice = self.get_object(poll_id).choices.filter(id=choice_id)
         
-        if serializer.is_valid():
-            poll_text = serializer.data['poll_text']
-            choices = serializer.data['choices']
-            poll = Poll.objects.create(poll_text=poll_text)
+        if choice.count() != 1:
+            raise Http404
 
-            Choice.objects.bulk_create([
-                Choice(
-                    poll=poll,
-                    choice_text=choice_text
-                ) for choice_text in choices
-            ])
+        choice.update(votes=F('votes') + 1)
 
-            return Response(
-                data={'success': True}, 
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(
-            data={'success': False}, 
-            status=status.HTTP_400_BAD_REQUEST
-        ) 
-
-
-class PollView(APIView):
-    def get(self, request: HttpRequest) -> Response:
-
-        return Response(
-            'Not Implemented\n', 
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
-
-    def post(self, request: HttpRequest) -> Response:
-
-        serializer = PollSerializer(data=request.data)
+        return Response(data={'success': True}, status=status.HTTP_201_CREATED)
         
-        if serializer.is_valid():
-            poll_id = serializer.data['poll_id']
-            choice_id = serializer.data['choice_id']
-
-            try:
-                Poll.objects.get(id=poll_id).choices.filter(id=choice_id).update(votes=F('votes') + 1)
-
-                return Response(
-                    data={'success': True}, 
-                    status=status.HTTP_201_CREATED
-                )
-            except Poll.DoesNotExist:
-                return Response(
-                    data={'success': False}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                ) 
-        return Response(
-            data={'success': False}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        return self.update(request, *args, **kwargs)
 
 
-class GetResult(APIView):
+class GetResult(mixins.RetrieveModelMixin, generics.GenericAPIView):
 
-    def get(self, request: HttpRequest) -> Response:
+    serializer_class = GetResultSerializer
 
-        return Response(
-            'Not Implemented\n', 
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    def get_object(self, pk: int) -> Poll:
+        try:
+            return Poll.objects.get(pk=pk)
+        except Poll.DoesNotExist:
+            raise Http404
+        
+    def retrieve(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_id = serializer.data.get('poll_id')
+        result = [choice_data for choice_data in self.get_object(poll_id).choices.values()]
+
+        return Response(data={'result': result}, status=status.HTTP_200_OK)
     
-    def post(self, request: HttpRequest) -> Response:
-        serializer = GetResultSerializer(data=request.data)
-
-        if serializer.is_valid():
-            data = []
-            poll_id = serializer.data['poll_id']    
-
-            try:
-                for choice_data in Poll.objects.get(id=poll_id).choices.values():
-                    data.append(choice_data)
-            except Poll.DoesNotExist:
-                return Response({'data': []}, status=status.HTTP_204_NO_CONTENT)
-                
-            return Response({'data': data}, status=status.HTTP_200_OK)
-
-
-# @api_view(['GET', 'POST'])
-# def create_poll_view(request: HttpRequest) -> HttpResponse:
-#     if request.method != 'POST':
-#         return HttpResponse('Not Implemented\n', status=404)
-    
-#     serializer = PollCreateSerializer(data=request.data)
-
-#     if serializer.is_valid():
-#         poll_text = serializer.data['poll_text']
-#         choices = serializer.data['choices']
-#         poll = Poll.objects.create(poll_text=poll_text)
-
-#         Choice.objects.bulk_create([
-#             Choice(
-#                 poll=poll,
-#                 choice_text=choice_text
-#             ) for choice_text in choices
-#         ])
-
-#         return HttpResponse('Good!\n', status=201)
-
-
-# @api_view(['GET', 'POST'])
-# def poll_view(request: HttpRequest) -> HttpResponse:
-#     if request.method != 'POST':
-#         return HttpResponse('Not Implemented\n', status=404)
-    
-#     serializer = PollSerializer(data=request.data)
- 
-#     if serializer.is_valid():
-#         poll_id = serializer.data['poll_id']
-#         choice_id = serializer.data['choice_id']
-
-#         Poll.objects.get(id=poll_id).choices.filter(id=choice_id).update(votes=F('votes') + 1)
-
-#         return HttpResponse('Good!\n', status=201)
-
-
-# @api_view(['GET', 'POST'])
-# def get_result(request: HttpRequest) -> Union[JsonResponse, HttpResponse]:
-#     if request.method != 'POST':
-#         return HttpResponse('Not Implemented\n', status=404)
-    
-#     serializer = GetResultSerializer(data=request.data)
-
-#     if serializer.is_valid():
-#         lst = []
-#         poll_id = serializer.data['poll_id']    
-
-#         try:
-#             for choice_data in Poll.objects.get(id=poll_id).choices.values():
-#                 lst.append(choice_data)
-#         except Poll.DoesNotExist:
-#             return HttpResponse('Not Implemented\n', status=404)
-            
-#         return JsonResponse({'data': lst}, status=200)
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        return self.retrieve(request, *args, **kwargs)
