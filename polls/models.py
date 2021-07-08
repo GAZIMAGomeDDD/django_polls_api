@@ -7,6 +7,9 @@ class Poll(models.Model):
 
     def __str__(self):
         return self.poll_text
+    
+    class Meta:
+        db_table = 'poll'
 
 
 class Choice(models.Model):
@@ -21,3 +24,6 @@ class Choice(models.Model):
 
     def __str__(self):
         return self.choice_text
+
+    class Meta:
+        db_table = 'choice'
