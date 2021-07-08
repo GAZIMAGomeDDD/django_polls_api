@@ -14,6 +14,8 @@ from rest_framework import status
 from rest_framework import mixins
 from rest_framework.request import Request
 
+from drf_yasg.utils import swagger_auto_schema
+
 
 class CreatePollViewSet(viewsets.ModelViewSet):
 
@@ -38,14 +40,15 @@ class PollView(mixins.UpdateModelMixin, generics.GenericAPIView):
         poll_id = serializer.data.get('poll_id')
         choice_id = serializer.data.get('choice_id')
         choice = self.get_object(poll_id).choices.filter(id=choice_id)
-        
+
         if choice.count() != 1:
             raise Http404
 
         choice.update(votes=F('votes') + 1)
 
         return Response(data={'success': True}, status=status.HTTP_201_CREATED)
-        
+
+    @swagger_auto_schema(responses={status.HTTP_201_CREATED: '{"success": true}'})
     def post(self, request: Request, *args, **kwargs) -> Response:
         return self.update(request, *args, **kwargs)
 
@@ -59,14 +62,16 @@ class GetResult(mixins.RetrieveModelMixin, generics.GenericAPIView):
             return Poll.objects.get(pk=pk)
         except Poll.DoesNotExist:
             raise Http404
-        
+
     def retrieve(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_id = serializer.data.get('poll_id')
-        result = [choice_data for choice_data in self.get_object(poll_id).choices.values()]
+        result = [choice_data for choice_data in self.get_object(
+            poll_id).choices.values()]
 
         return Response(data={'result': result}, status=status.HTTP_200_OK)
-    
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: '{"result": result}'})
     def post(self, request: Request, *args, **kwargs) -> Response:
         return self.retrieve(request, *args, **kwargs)

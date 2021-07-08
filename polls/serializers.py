@@ -20,9 +20,10 @@ class CreatePollSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def create(self, validated_data: dict) -> Poll:
-        
+
         choices = validated_data.get('choices')
-        instance = Poll.objects.create(poll_text=validated_data.get('poll_text'))
+        instance = Poll.objects.create(
+            poll_text=validated_data.get('poll_text'))
 
         Choice.objects.bulk_create([
             Choice(
@@ -32,7 +33,7 @@ class CreatePollSerializer(serializers.ModelSerializer):
         ])
 
         return instance
-    
+
 
 class PollSerializer(serializers.Serializer):
 
