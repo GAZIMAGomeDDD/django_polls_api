@@ -3,7 +3,7 @@ from .models import Poll, Choice
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
-    choice_text = serializers.CharField(max_length=256)
+    choice_text = serializers.CharField(max_length=256, allow_blank=False)
 
     class Meta:
         model = Choice
@@ -12,7 +12,7 @@ class ChoiceSerializer(serializers.ModelSerializer):
 
 class CreatePollSerializer(serializers.ModelSerializer):
 
-    poll_text = serializers.CharField(max_length=256)
+    poll_text = serializers.CharField(max_length=256, allow_blank=False)
     choices = ChoiceSerializer(many=True)
 
     class Meta:
@@ -20,7 +20,6 @@ class CreatePollSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def create(self, validated_data: dict) -> Poll:
-
         choices = validated_data.get('choices')
         instance = Poll.objects.create(
             poll_text=validated_data.get('poll_text'))
