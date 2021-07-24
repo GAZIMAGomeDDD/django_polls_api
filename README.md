@@ -1,5 +1,3 @@
-# Фидбек от разработчика из Avito
-<img src="./img/feedback.png">
 
 # JSON API сервис для голосования.
 
